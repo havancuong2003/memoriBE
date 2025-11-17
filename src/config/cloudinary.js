@@ -54,14 +54,35 @@ const storage = new CloudinaryStorage({
       const isCoverImage = file.fieldname === 'coverImage';
       const folder = isCoverImage ? 'memories/cover-images' : 'memories/images';
       
+      // Tỉ lệ 8:11 cho cover image (giống như ảnh/video)
+      // Width: 8 * 240 = 1920, Height: 11 * 240 = 2640
+      if (isCoverImage) {
+        return {
+          folder: folder,
+          allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'],
+          transformation: [
+            {
+              width: 1920,
+              height: 2640,
+              crop: 'limit',
+              aspect_ratio: '8:11',
+              quality: 'auto',
+              fetch_format: 'auto',
+            },
+          ],
+        };
+      }
+      
+      // Tỉ lệ 8:11 cho ảnh/video thông thường
       return {
         folder: folder,
         allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'],
         transformation: [
           {
             width: 1920,
-            height: 1920,
+            height: 2640,
             crop: 'limit',
+            aspect_ratio: '8:11',
             quality: 'auto',
             fetch_format: 'auto',
           },

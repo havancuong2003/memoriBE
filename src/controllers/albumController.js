@@ -276,17 +276,51 @@ const updateCoverImage = async (req, res, next) => {
     } 
     // Nếu có file upload, upload lên Cloudinary
     else if (req.file) {
-      // Kiểm tra xem file có được upload thành công lên Cloudinary không
-      if (!req.file.secure_url && !req.file.url) {
-        const error = new Error('Không thể upload file lên Cloudinary');
+      console.log('📤 req.file object:', {
+        fieldname: req.file.fieldname,
+        originalname: req.file.originalname,
+        mimetype: req.file.mimetype,
+        size: req.file.size,
+        path: req.file.path,
+        filename: req.file.filename,
+        public_id: req.file.public_id,
+        secure_url: req.file.secure_url,
+        url: req.file.url,
+        allKeys: Object.keys(req.file)
+      });
+      
+      // CloudinaryStorage trả về file object với secure_url hoặc url
+      // Nếu có transformation, secure_url đã bao gồm transformation
+      // Ưu tiên secure_url, sau đó url, cuối cùng tạo từ public_id/path
+      coverImageUrl = req.file.secure_url || req.file.url;
+      
+      // Nếu không có secure_url hoặc url, tạo từ public_id hoặc path
+      if (!coverImageUrl) {
+        const cloudinary = require('../config/cloudinary').default;
+        const publicId = req.file.public_id || req.file.path;
+        
+        if (!publicId) {
+          console.error('❌ Không thể lấy public_id hoặc path từ req.file:', req.file);
+          const error = new Error('Không thể upload file lên Cloudinary hoặc lấy URL');
+          error.statusCode = 500;
+          throw error;
+        }
+        
+        // Tạo URL từ public_id với transformation (nếu cần)
+        coverImageUrl = cloudinary.url(publicId, {
+          secure: true,
+        });
+      }
+      
+      if (!coverImageUrl) {
+        console.error('❌ Không thể lấy URL từ Cloudinary. req.file:', req.file);
+        const error = new Error('Không thể upload file lên Cloudinary hoặc lấy URL');
         error.statusCode = 500;
         throw error;
       }
       
-      // Lấy URL từ Cloudinary (ưu tiên secure_url)
-      coverImageUrl = req.file.secure_url || req.file.url;
-      console.log('📤 File uploaded to Cloudinary:', {
-        publicId: req.file.public_id,
+      console.log('✅ File uploaded to Cloudinary successfully:', {
+        publicId: req.file.public_id || req.file.path,
         url: coverImageUrl,
         format: req.file.format,
         width: req.file.width,
