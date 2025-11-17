@@ -276,8 +276,22 @@ const updateCoverImage = async (req, res, next) => {
     } 
     // Nếu có file upload, upload lên Cloudinary
     else if (req.file) {
+      // Kiểm tra xem file có được upload thành công lên Cloudinary không
+      if (!req.file.secure_url && !req.file.url) {
+        const error = new Error('Không thể upload file lên Cloudinary');
+        error.statusCode = 500;
+        throw error;
+      }
+      
+      // Lấy URL từ Cloudinary (ưu tiên secure_url)
       coverImageUrl = req.file.secure_url || req.file.url;
-      console.log('✅ Using uploaded file:', coverImageUrl);
+      console.log('📤 File uploaded to Cloudinary:', {
+        publicId: req.file.public_id,
+        url: coverImageUrl,
+        format: req.file.format,
+        width: req.file.width,
+        height: req.file.height
+      });
     } else {
       const error = new Error('Vui lòng chọn ảnh hoặc upload file');
       error.statusCode = 400;

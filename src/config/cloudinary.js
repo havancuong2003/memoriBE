@@ -49,8 +49,13 @@ const storage = new CloudinaryStorage({
         chunk_size: 6000000, // Chunk size 6MB để upload video lớn
       };
     } else {
+      // Kiểm tra xem có phải là cover image không (từ field name)
+      // Field name 'coverImage' được dùng khi upload cover cho album
+      const isCoverImage = file.fieldname === 'coverImage';
+      const folder = isCoverImage ? 'memories/cover-images' : 'memories/images';
+      
       return {
-        folder: 'memories/images',
+        folder: folder,
         allowed_formats: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'heic', 'heif'],
         transformation: [
           {
