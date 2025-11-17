@@ -229,7 +229,10 @@ const updateAlbum = async (req, res, next) => {
 const updateCoverImage = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { imageId } = req.body; // Nếu chọn từ ảnh trong album
+    // Lấy imageId từ req.body (multer sẽ parse FormData)
+    const imageId = req.body.imageId;
+
+    console.log('📸 Update cover image request:', { albumId: id, imageId, hasFile: !!req.file });
 
     const album = await Album.findById(id);
 
@@ -253,8 +256,18 @@ const updateCoverImage = async (req, res, next) => {
     if (imageId) {
       const Image = require('../models/Image');
       const image = await Image.findById(imageId);
-      if (image && image.album?.toString() === id) {
+      if (!image) {
+        const error = new Error('Không tìm thấy ảnh');
+        error.statusCode = 404;
+        throw error;
+      }
+      // So sánh album ID (cả hai đều convert sang string để so sánh)
+      const imageAlbumId = image.album?.toString();
+      const albumId = id.toString();
+      console.log('🔍 Checking image album:', { imageAlbumId, albumId, match: imageAlbumId === albumId });
+      if (imageAlbumId === albumId) {
         coverImageUrl = image.thumbnailUrl || image.url;
+        console.log('✅ Using image from album:', coverImageUrl);
       } else {
         const error = new Error('Ảnh không thuộc album này');
         error.statusCode = 400;
@@ -264,21 +277,26 @@ const updateCoverImage = async (req, res, next) => {
     // Nếu có file upload, upload lên Cloudinary
     else if (req.file) {
       coverImageUrl = req.file.secure_url || req.file.url;
+      console.log('✅ Using uploaded file:', coverImageUrl);
     } else {
       const error = new Error('Vui lòng chọn ảnh hoặc upload file');
       error.statusCode = 400;
       throw error;
     }
 
+    // Cập nhật coverImage và lưu vào database
+    console.log('💾 Saving cover image to database:', coverImageUrl);
     album.coverImage = coverImageUrl;
-    await album.save();
+    const savedAlbum = await album.save();
+    console.log('✅ Album saved successfully:', { albumId: savedAlbum._id, coverImage: savedAlbum.coverImage });
 
     res.json({
       success: true,
       message: 'Đã cập nhật ảnh đại diện album',
-      data: album,
+      data: savedAlbum,
     });
   } catch (error) {
+    console.error('❌ Error updating cover image:', error);
     next(error);
   }
 };
